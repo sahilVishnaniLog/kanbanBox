@@ -6,15 +6,17 @@ import {
   CardContent,
   Typography,
   IconButton,
+  Box,
 } from "@mui/material";
 import { Trash2 } from "lucide-react";
 
-export const Card = ({ id, title }) => {
+export const Card = ({ id, title, onDelete }) => {
   const { attributes, listeners, setNodeRef, transform, transition } =
-    useSortable({ id }); //abstraction of the useDragable hook
+    useSortable({ id });
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
+    cursor: "grab",
   };
   return (
     <MuiCard
@@ -22,13 +24,30 @@ export const Card = ({ id, title }) => {
       style={style}
       {...attributes}
       {...listeners}
-      sx={{ mb: 1, cursor: "grab", userSelect: "none" }}
+      sx={{ mb: 1, userSelect: "none" }}
     >
-      <CardContent sx={{ "&:last-child": { pb: "16px" } }}>
-        <Typography variant="h6" component="h3" gutterBottom>
+      <CardContent
+        sx={{
+          "&:last-child": { pb: "16px" },
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          p: 2,
+        }}
+      >
+        <Typography
+          variant="body1"
+          component="h3"
+          sx={{ wordBreak: "break-word", pr: 1 }}
+        >
           {title}
         </Typography>
-        <IconButton size="small" color="error">
+        <IconButton
+          size="small"
+          color="error"
+          onClick={() => onDelete(id)}
+          sx={{ flexShrink: 0, mt: -0.5, mr: -0.5 }}
+        >
           <Trash2 size={16} />
         </IconButton>
       </CardContent>

@@ -12,7 +12,6 @@ import {
   arrayMove,
   sortableKeyboardCoordinates,
   horizontalListSortingStrategy,
-  verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { Box, Container, Grid, Typography, Paper } from "@mui/material";
 import { SortableContext } from "@dnd-kit/sortable";
@@ -33,10 +32,10 @@ const Board = () => {
   );
 
   const findContainer = (id) => {
-    if (id in data.tasks) {
-      return data.tasks[id].columnId;
+    if (id.startsWith("column-")) {
+      return id;
     }
-    return null;
+    return data.tasks[id]?.columnId;
   };
 
   const handleDragStart = ({ active }) => {
@@ -44,6 +43,51 @@ const Board = () => {
     setActiveType(active.id.startsWith("task-") ? "task" : "column");
   };
 
+  // NEW FUNCTION: Add a new task
+  const handleAddTask = (columnId, title) => {
+    const newTaskId = `task-${Date.now()}`;
+    const newTask = {
+      id: newTaskId,
+      title,
+      columnId,
+    };
+
+    setData((prev) => {
+      const newTasks = {
+        ...prev.tasks,
+        [newTaskId]: newTask,
+      };
+      const newColumns = {
+        ...prev.columns,
+        [columnId]: {
+          ...prev.columns[columnId],
+          tasks: [...prev.columns[columnId].tasks, newTaskId],
+        },
+      };
+      return { ...prev, tasks: newTasks, columns: newColumns };
+    });
+  };
+
+  // NEW FUNCTION: Delete a task
+  const handleDeleteTask = (taskId) => {
+    setData((prev) => {
+      const newTasks = { ...prev.tasks };
+      const columnId = newTasks[taskId].columnId;
+      delete newTasks[taskId];
+
+      const newColumns = {
+        ...prev.columns,
+        [columnId]: {
+          ...prev.columns[columnId],
+          tasks: prev.columns[columnId].tasks.filter((id) => id !== taskId),
+        },
+      };
+
+      return { ...prev, tasks: newTasks, columns: newColumns };
+    });
+  };
+
+  // REFACTORED: handleDragEnd to fix the bug
   const handleDragEnd = (event) => {
     const { active, over } = event;
 
@@ -62,8 +106,8 @@ const Board = () => {
       return;
     }
 
-    // Check if dragging a column
-    if (activeIdStr.startsWith("column-")) {
+    // Handle Column Dragging
+    if (activeType === "column") {
       const oldIndex = data.columnOrder.indexOf(activeIdStr);
       const newIndex = data.columnOrder.indexOf(overIdStr);
 
@@ -78,67 +122,83 @@ const Board = () => {
       return;
     }
 
-    // Existing card drag logic (moving/reordering tasks)
-    const activeContainer = findContainer(activeIdStr);
-    const overId = overIdStr;
+    // Handle Task Dragging
+    if (activeType === "task") {
+      const activeContainer = findContainer(activeIdStr);
+      const overContainer = findContainer(overIdStr);
 
-    if (activeContainer !== overId) {
-      // Moving between columns
-      const activeItems = data.columns[activeContainer]?.tasks || [];
-      const overItems = data.columns[overId]?.tasks || [];
-
-      const activeIndex = activeItems.indexOf(activeIdStr);
-      const overIndex = overItems.indexOf(overIdStr);
-
-      let newIndex;
-      if (overItems.includes(activeIdStr)) {
-        newIndex = overItems.indexOf(activeIdStr);
-      } else {
-        const isBelowLastItem =
-          over && overItems.length > 0 && overIndex === overItems.length - 1;
-
-        newIndex = isBelowLastItem ? overItems.length : overIndex;
+      if (!activeContainer || !overContainer) {
+        setActiveId(null);
+        setActiveType(null);
+        return;
       }
 
-      setData((prev) => {
-        const newTasks = { ...prev.tasks };
-        newTasks[activeIdStr].columnId = overId;
+      if (activeContainer === overContainer) {
+        // --- Reordering within the SAME column ---
+        const columnItems = data.columns[activeContainer]?.tasks || [];
+        const oldIndex = columnItems.indexOf(activeIdStr);
+        const newIndex = columnItems.indexOf(overIdStr);
 
-        const newColumns = {
-          ...prev.columns,
-          [activeContainer]: {
-            ...prev.columns[activeContainer],
-            tasks: activeItems.filter((item) => item !== activeIdStr),
-          },
-          [overId]: {
-            ...prev.columns[overId],
-            tasks: [
-              ...overItems.slice(0, newIndex),
-              activeIdStr,
-              ...overItems.slice(newIndex),
-            ],
-          },
-        };
-
-        return { ...prev, tasks: newTasks, columns: newColumns };
-      });
-    } else {
-      // Reordering within the same column
-      const columnItems = data.columns[activeContainer]?.tasks || [];
-      const oldIndex = columnItems.indexOf(activeIdStr);
-      const newIndex = columnItems.indexOf(overIdStr);
-
-      if (oldIndex !== newIndex) {
-        setData((prev) => ({
-          ...prev,
-          columns: {
-            ...prev.columns,
-            [activeContainer]: {
-              ...prev.columns[activeContainer],
-              tasks: arrayMove(columnItems, oldIndex, newIndex),
+        if (oldIndex !== newIndex) {
+          setData((prev) => ({
+            ...prev,
+            columns: {
+              ...prev.columns,
+              [activeContainer]: {
+                ...prev.columns[activeContainer],
+                tasks: arrayMove(columnItems, oldIndex, newIndex),
+              },
             },
-          },
-        }));
+          }));
+        }
+      } else {
+        // --- Moving between DIFFERENT columns ---
+        const activeItems = data.columns[activeContainer]?.tasks || [];
+        const overItems = data.columns[overContainer]?.tasks || [];
+
+        const activeIndex = activeItems.indexOf(activeIdStr);
+
+        // Find index to insert at
+        let newIndex;
+        if (overIdStr.startsWith("task-")) {
+          // Dropped on a task
+          newIndex = overItems.indexOf(overIdStr);
+        } else {
+          // Dropped on the column (or empty space)
+          newIndex = overItems.length; // Add to the end
+        }
+
+        setData((prev) => {
+          // 1. Remove from old column
+          const newActiveTasks = activeItems.filter((id) => id !== activeIdStr);
+
+          // 2. Add to new column
+          const newOverTasks = [
+            ...overItems.slice(0, newIndex),
+            activeIdStr,
+            ...overItems.slice(newIndex),
+          ];
+
+          // 3. Update the task's parent column ID
+          const newTasks = { ...prev.tasks };
+          newTasks[activeIdStr].columnId = overContainer;
+
+          return {
+            ...prev,
+            tasks: newTasks,
+            columns: {
+              ...prev.columns,
+              [activeContainer]: {
+                ...prev.columns[activeContainer],
+                tasks: newActiveTasks,
+              },
+              [overContainer]: {
+                ...prev.columns[overContainer],
+                tasks: newOverTasks,
+              },
+            },
+          };
+        });
       }
     }
 
@@ -146,7 +206,7 @@ const Board = () => {
     setActiveType(null);
   };
 
-  const columnItems = data.columnOrder; // Array of column IDs for horizontal sorting
+  const columnItems = data.columnOrder;
 
   return (
     <DndContext
@@ -174,6 +234,8 @@ const Board = () => {
                     title={column.title}
                     tasks={tasks}
                     data={data}
+                    onAddTask={handleAddTask}
+                    onDeleteTask={handleDeleteTask}
                   />
                 </Grid>
               );
@@ -184,7 +246,6 @@ const Board = () => {
           {activeType === "task" && activeId ? (
             <Card id={activeId} title={data.tasks[activeId]?.title} />
           ) : activeType === "column" && activeId ? (
-            // Simple ghost column overlay
             <Paper
               sx={{
                 minHeight: 400,
