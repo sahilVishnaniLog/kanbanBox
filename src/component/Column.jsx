@@ -8,7 +8,7 @@ import {
   CardContent,
   Typography,
 } from "@mui/material";
-import { KanbanBoardLis } from "./KanbanInitialData.js";
+import { kanbanBoardList } from "./KanbanInitialData.js";
 import AddIcon from "@mui/icons-material/Add";
 import CardTask from "./CardTask.jsx";
 
@@ -27,7 +27,7 @@ const appBarSx = {
   position: "static",
 };
 function findColumn(columnId) {
-  return KanbanBoardList.find((column) => column.id === columnId);
+  return kanbanBoardList.find((column) => column.id === columnId);
 }
 export default function Column({ columnId }) {
   return (
@@ -46,7 +46,7 @@ export default function Column({ columnId }) {
           />
         </AppBar>
         {findColumn(columnId).tasks.map((task) => (
-          <CardTask taskId={task.id} />
+          <CardTask key={task.id} taskId={task.id} />
         ))}
         <Card sx={{ bgcolor: "transparent" }}>
           <CardActionArea>

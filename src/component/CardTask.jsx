@@ -9,7 +9,7 @@ import {
   Avatar,
 } from "@mui/material";
 import {
-  KanbanBoardList, // this will come from the firestore database later
+  kanbanBoardList, // this will come from the firestore database later
 } from "./KanbanInitialData.js";
 import { workTypeIconMap, PriorityIconMap } from "./KanbanIconMap.jsx";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
@@ -17,10 +17,10 @@ import EditIcon from "@mui/icons-material/Edit";
 const cardSx = { bgcolor: "board.card", padding: "1rem", margin: "0.2rem" };
 
 function findTask(key) {
-  for (let i = 0; i < KanbanBoardList.length; i++) {
-    for (let j = 0; j < KanbanBoardList[i].tasks.length; j++) {
-      if (KanbanBoardList[i].tasks[j].id === key) {
-        return KanbanBoardList[i].tasks[j];
+  for (let i = 0; i < kanbanBoardList.length; i++) {
+    for (let j = 0; j < kanbanBoardList[i].tasks.length; j++) {
+      if (kanbanBoardList[i].tasks[j].id === key) {
+        return kanbanBoardList[i].tasks[j];
       }
     }
   }
@@ -28,7 +28,7 @@ function findTask(key) {
 }
 
 export default function CardTask({ taskId }) {
-  const task = findTask(key);
+  const task = findTask(taskId);
   return (
     <>
       <Card key={task.id} sx={cardSx}>

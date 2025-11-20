@@ -74,7 +74,7 @@ const T10 = "task-10";
 const T11 = "task-11";
 const T12 = "task-12";
 
-export const KanbanBoardLists = [
+export const kanbanBoardList = [
   {
     id: C1,
     title: "Complete",
@@ -348,6 +348,6 @@ const addDateFlags = (lists) => {
 };
 
 // Apply flags to the data (Task T4 in Complete list is due today)
-export const KanbanBoardListsWithFlags = addDateFlags([...KanbanBoardLists]);
+export const KanbanBoardListsWithFlags = addDateFlags([...kanbanBoardList]);
 
-export default KanbanBoardLists; // Export the base lists too, without flags
+export default kanbanBoardList; // Export the base lists too, without flags
