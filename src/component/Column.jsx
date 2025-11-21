@@ -1,3 +1,5 @@
+import { useDroppable } from "@dnd-kit/core";
+
 import {
   Paper,
   Stack,
@@ -29,15 +31,22 @@ const appBarSx = {
 function findColumn(columnId) {
   return kanbanBoardList.find((column) => column.id === columnId);
 }
-export default function Column({ columnId }) {
+export default function Column({ columnId, activeTaskId, setActiveTaskId }) {
+  const { setNodeRef } = useDroppable({
+    id: columnId,
+    data: { accepts: ["taskType1", "taskType2"], type: "columnType1" },
+  });
+
   return (
-    <Paper key={columnId} sx={paperSx}>
+    <Paper key={columnId} ref={setNodeRef} sx={paperSx}>
       <Stack spacing="1rem">
-        <AppBar sx={appBarSx}>
-          <Typography sx={{ fontWeight: "bold" }}>
-            {findColumn(columnId).title}{" "}
+        <AppBar sx={appBarSx} elevation={0}>
+          <Typography sx={{ fontWeight: "bold", fontSize: "1rem" }}>
+            {findColumn(columnId).title}
           </Typography>
           <Chip
+            size="small"
+            sx={{ fontSize: "0.8rem" }}
             label={
               findColumn(columnId).tasks.length +
               " OF " +
@@ -46,14 +55,26 @@ export default function Column({ columnId }) {
           />
         </AppBar>
         {findColumn(columnId).tasks.map((task) => (
-          <CardTask key={task.id} taskId={task.id} />
+          <CardTask
+            activeTaskId={activeTaskId}
+            setActiveTaskId={setActiveTaskId}
+            key={task.id}
+            taskId={task.id}
+          />
         ))}
-        <Card sx={{ bgcolor: "transparent" }}>
+        <Card elevation={0} sx={{ bgcolor: "transparent" }}>
           <CardActionArea>
             <CardContent>
               <Stack direction="row" spacing={1.5}>
                 <AddIcon />
-                <Typography> CREATE NEW TASK </Typography>
+                <Typography
+                  size="small"
+                  fontWeight="300"
+                  color="text.secondary"
+                >
+                  {" "}
+                  Create new task{" "}
+                </Typography>
               </Stack>
             </CardContent>
           </CardActionArea>
