@@ -1,9 +1,48 @@
 import { DndContext, DragOverlay } from "@dnd-kit/core";
-
+import {
+  cardSx,
+  cardContentSx,
+  stack1Sx,
+  stack2Props,
+  avatarSx,
+} from "./CardTask.jsx";
 import { useState } from "react";
-import { Container, Stack } from "@mui/material";
+import { Container, Stack, Card, CardContent, Typography } from "@mui/material";
 import { kanbanBoardList } from "./KanbanInitialData.js";
 import Column from "./Column";
+function findTask(key) {
+  for (let i = 0; i < kanbanBoardList.length; i++) {
+    for (let j = 0; j < kanbanBoardList[i].tasks.length; j++) {
+      if (kanbanBoardList[i].tasks[j].id === key) {
+        return kanbanBoardList[i].tasks[j];
+      }
+    }
+  }
+  return null;
+}
+const DragOverlayCard = ({ activeTaskId }) => {
+  const task = findTask(activeTaskId);
+  if (!task) return null;
+  return (
+    <Card sx={cardSx}>
+      <CardContent sx={cardContentSx}>
+        <Stack sx={stack1Sx}>
+          <Stack {...stack2Props}>
+            <Box> {workTypeIconMap(task.workType)}</Box>
+            <Typography sx={{ fontSize: "0.8rem" }}>
+              {" "}
+              {task.projectId}{" "}
+            </Typography>
+            <Box sx={{ flexGrow: 1 }} />
+            <Box> {PriorityIconMap(task.priority)} </Box>
+
+            <Avatar sx={avatarSx} src={task.author.photoUrl} />
+          </Stack>
+        </Stack>
+      </CardContent>
+    </Card>
+  );
+};
 const findColumn = (columnId) => {
   return kanbanBoardList.find((column) => column.id === columnId);
 };

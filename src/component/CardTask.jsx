@@ -18,14 +18,32 @@ import {
 import { workTypeIconMap, PriorityIconMap } from "./KanbanIconMap.jsx";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import EditIcon from "@mui/icons-material/Edit";
-const cardSx = {
+export const cardSx = {
   bgcolor: "board.card",
   padding: 1,
   margin: 0,
   height: "7rem",
   touchAction: "none",
 }; // touchAction; 'none'  is important to avoid scroll  in mobile(device with touch screen)
-
+export const cardContentSx = {
+  height: "100%",
+  width: "100%",
+  padding: 0,
+  margin: 0,
+};
+export const stack1Sx = {
+  p: 0,
+  m: 0,
+  height: "100%",
+  width: "100%",
+  alignItems: "space-between",
+};
+export const stack2Props = {
+  direction: "row",
+  spacing: 1.5,
+  sx: { padding: 0, height: "1rem" },
+};
+export const avatarSx = { bgcolor: "transparent", height: 24, width: 24 };
 function findTask(key) {
   for (let i = 0; i < kanbanBoardList.length; i++) {
     for (let j = 0; j < kanbanBoardList[i].tasks.length; j++) {
@@ -70,23 +88,9 @@ export default function CardTask({ taskId, activeTaskId, setActiveTaskId }) {
         <CardActionArea
           sx={{ height: "100%", width: "100%", padding: "0.5rem", margin: 0 }}
         >
-          <CardContent
-            sx={{ height: "100%", width: "100%", padding: 0, margin: 0 }}
-          >
-            <Stack
-              sx={{
-                p: 0,
-                m: 0,
-                height: "100%",
-                width: "100%",
-                alignItems: "space-between",
-              }}
-            >
-              <Stack
-                direction="row"
-                spacing={1.5}
-                sx={{ padding: 0, height: "1rem" }}
-              >
+          <CardContent sx={cardContentSx}>
+            <Stack sx={stack1Sx}>
+              <Stack {...stack2Props}>
                 <Typography sx={{ fontSize: "0.8rem" }}>
                   {task.title}
                 </Typography>
@@ -107,11 +111,9 @@ export default function CardTask({ taskId, activeTaskId, setActiveTaskId }) {
               <Box sx={{ flexGrow: 1 }} />
 
               <Stack
-                direction="row"
-                spacing={1.5}
-                sx={{ padding: 0, height: "1.2rem" }}
+                {...stack2Props} // there is possibility to make the change to the height : to be 1.2rem
               >
-                <Box component="span"> {workTypeIconMap(task.workType)}</Box>
+                <Box> {workTypeIconMap(task.workType)}</Box>
                 <Typography sx={{ fontSize: "0.8rem" }}>
                   {" "}
                   {task.projectId}{" "}
@@ -121,7 +123,7 @@ export default function CardTask({ taskId, activeTaskId, setActiveTaskId }) {
                 <Tooltip content={task.author.photoUrl}>
                   <Avatar
                     onClick={(e) => e.stopPropagation()}
-                    sx={{ bgcolor: "transparent", height: 24, width: 24 }}
+                    sx={avatarSx}
                     src={task.author.photoUrl}
                   />
                 </Tooltip>
