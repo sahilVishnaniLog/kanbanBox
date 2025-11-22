@@ -7,9 +7,24 @@ import {
   avatarSx,
 } from "./CardTask.jsx";
 import { useState } from "react";
-import { Container, Stack, Card, CardContent, Typography } from "@mui/material";
+import {
+  Container,
+  Stack,
+  Card,
+  CardContent,
+  Typography,
+  Box,
+  Avatar,
+  IconButton,
+  Tooltip,
+  Chip,
+} from "@mui/material";
 import { kanbanBoardList } from "./KanbanInitialData.js";
 import Column from "./Column";
+import { workTypeIconMap, PriorityIconMap } from "./KanbanIconMap.jsx";
+import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
+import EditIcon from "@mui/icons-material/Edit";
+
 function findTask(key) {
   for (let i = 0; i < kanbanBoardList.length; i++) {
     for (let j = 0; j < kanbanBoardList[i].tasks.length; j++) {
@@ -20,8 +35,8 @@ function findTask(key) {
   }
   return null;
 }
-const DragOverlayCard = ({ activeTaskId }) => {
-  const task = findTask(activeTaskId);
+const DragOverlayCard = ({ value }) => {
+  const task = findTask(value);
   if (!task) return null;
   return (
     <Card sx={cardSx}>
@@ -47,9 +62,9 @@ const findColumn = (columnId) => {
   return kanbanBoardList.find((column) => column.id === columnId);
 };
 
-const handleDragEnd = (event) => {
+const handleDragEnd = (event, setActiveTaskId) => {
   const { active, over } = event;
-  if (over && active.data.current.suppports.includes(over.data.current.type)) {
+  if (over && active.data.current.suppports?.includes(over.data.current.type)) {
     console.log("handleDragEnd was called successfuly ");
   }
   setActiveTaskId(null);
@@ -60,7 +75,11 @@ export default function Board() {
 
   return (
     <>
-      <DndContext onDragEnd={handleDragEnd}>
+      <DndContext
+        onDragEnd={(event, setActiveTaskId) =>
+          handleDragEnd(event, setActiveTaskId)
+        }
+      >
         {/* <PresetTest />  to set the custom presets ( like configuring the highlevelt events and event handlers */}
         <Container sx={{ background: "transparent" }}>
           <Stack direction="row" spacing={2}>
@@ -77,7 +96,7 @@ export default function Board() {
           </Stack>
         </Container>
         <DragOverlay>
-          {activeTaskId ? <CardTask value={activeTaskId} /> : null}
+          {activeTaskId ? <DragOverlayCard value={activeTaskId} /> : null}
         </DragOverlay>
       </DndContext>
     </>

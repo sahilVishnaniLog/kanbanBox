@@ -85,52 +85,50 @@ export default function CardTask({ taskId, activeTaskId, setActiveTaskId }) {
       tabIndex={0} // to include the draggable elements to recieve keyboard focus events
     >
       <Card value={taskId} sx={cardSx}>
-        <CardActionArea
+        {/* <CardActionArea
           sx={{ height: "100%", width: "100%", padding: "0.5rem", margin: 0 }}
-        >
-          <CardContent sx={cardContentSx}>
-            <Stack sx={stack1Sx}>
-              <Stack {...stack2Props}>
-                <Typography sx={{ fontSize: "0.8rem" }}>
-                  {task.title}
-                </Typography>
-                <IconButton
-                  onClick={(e) => e.stopPropagation()}
-                  sx={{ background: "transparent", p: 0 }}
-                >
-                  <EditIcon sx={{ fontSize: 10, p: 0 }} />
-                </IconButton>
-                <Box sx={{ flexGrow: 1 }} />
-                <IconButton
-                  onClick={(e) => e.stopPropagation()}
-                  sx={{ background: "transparent" }}
-                >
-                  <MoreHorizIcon />
-                </IconButton>
-              </Stack>
-              <Box sx={{ flexGrow: 1 }} />
-
-              <Stack
-                {...stack2Props} // there is possibility to make the change to the height : to be 1.2rem
+        > */}
+        <CardContent sx={cardContentSx}>
+          <Stack sx={stack1Sx}>
+            <Stack {...stack2Props}>
+              <Typography sx={{ fontSize: "0.8rem" }}>{task.title}</Typography>
+              <IconButton
+                onClick={(e) => e.stopPropagation()}
+                sx={{ background: "transparent", p: 0 }}
               >
-                <Box> {workTypeIconMap(task.workType)}</Box>
-                <Typography sx={{ fontSize: "0.8rem" }}>
-                  {" "}
-                  {task.projectId}{" "}
-                </Typography>
-                <Box sx={{ flexGrow: 1 }} />
-                <Box component="span"> {PriorityIconMap(task.priority)}</Box>
-                <Tooltip content={task.author.photoUrl}>
-                  <Avatar
-                    onClick={(e) => e.stopPropagation()}
-                    sx={avatarSx}
-                    src={task.author.photoUrl}
-                  />
-                </Tooltip>
-              </Stack>
+                <EditIcon sx={{ fontSize: 10, p: 0 }} />
+              </IconButton>
+              <Box sx={{ flexGrow: 1 }} />
+              <IconButton
+                onClick={(e) => e.stopPropagation()}
+                sx={{ background: "transparent" }}
+              >
+                <MoreHorizIcon />
+              </IconButton>
             </Stack>
-          </CardContent>
-        </CardActionArea>
+            <Box sx={{ flexGrow: 1 }} />
+
+            <Stack
+              {...stack2Props} // there is possibility to make the change to the height : to be 1.2rem
+            >
+              <Box> {workTypeIconMap(task.workType)}</Box>
+              <Typography sx={{ fontSize: "0.8rem" }}>
+                {" "}
+                {task.projectId}{" "}
+              </Typography>
+              <Box sx={{ flexGrow: 1 }} />
+              <Box component="span"> {PriorityIconMap(task.priority)}</Box>
+              <Tooltip content={task.author.photoUrl}>
+                <Avatar
+                  onClick={(e) => e.stopPropagation()}
+                  sx={avatarSx}
+                  src={task.author.photoUrl}
+                />
+              </Tooltip>
+            </Stack>
+          </Stack>
+        </CardContent>
+        {/* </CardActionArea> */}
       </Card>
     </Box>
   );
