@@ -1,36 +1,28 @@
-import { DndContext, DragOverlay, closestCorners } from "@dnd-kit/core"; //NOTE: Add for smooth collision { closestCorners}
+import { DndContext, DragOverlay } from "@dnd-kit/core";
+import { closestCorners } from "@dnd-kit/core"; // Add for smooth collision
 import { cardSx, cardContentSx, stack1Sx, stack2Props, avatarSx } from "./CardTask.jsx";
 import { useState } from "react";
 import { Container, Stack, Card, CardContent, Typography, Box, Avatar, IconButton, Tooltip, Chip } from "@mui/material";
-import { kanbanBoardList } from "./KanbanInitialData.js";
-//EventX
-//EventHandlerX
-//EventY
-//EventHandlerY
-//EventZ
-//EventHandlerZ
-
+import { kanbanBoardList } from "./KanbanInitialData.js"; // Initial data
 import Column from "./Column";
 import { workTypeIconMap, PriorityIconMap } from "./KanbanIconMap.jsx";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import EditIcon from "@mui/icons-material/Edit";
-// tracking boardList dynamic pass
-/*CONTAINED*/ function findTask(key, boardList) {
-    // kanbanBoardList=> boardList
+
+function findTask(key, boardList) {
+    // Make dynamic: pass boardList
     for (let i = 0; i < boardList.length; i++) {
-        // REPLACE
         for (let j = 0; j < boardList[i].tasks.length; j++) {
-            //REPLACE
             if (boardList[i].tasks[j].id === key) {
-                //REPLACE
-                return boardList[i].tasks[j]; //REPLACE
+                return boardList[i].tasks[j];
             }
         }
     }
     return null;
 }
+
 const DragOverlayCard = ({ value, boardList }) => {
-    // REPLACE
+    // Pass boardList
     const task = findTask(value, boardList);
     if (!task) return null;
     return (
@@ -42,7 +34,6 @@ const DragOverlayCard = ({ value, boardList }) => {
                         <Typography sx={{ fontSize: "0.8rem" }}> {task.projectId} </Typography>
                         <Box sx={{ flexGrow: 1 }} />
                         <Box> {PriorityIconMap(task.priority)} </Box>
-
                         <Avatar sx={avatarSx} src={task.author.photoUrl} />
                     </Stack>
                 </Stack>
@@ -51,65 +42,66 @@ const DragOverlayCard = ({ value, boardList }) => {
     );
 };
 
-export default function Board() {
-    const [kanboardList, setKanboardList] = useState(kanbanBoardList); //REVIEW
-    const [activeTaskId, setActiveTaskId] = useState(null);
+const handleDragEnd = (event, setKanboardList, setActiveTaskId, kanboardList) => {
+    const { active, over } = event;
+    const activeId = active.id;
+    const overId = over?.id;
 
-    const handleDragEnd = (event) => {
-        //
-        // FIXXED
-        const { active, over } = event;
-        const activeId = active.id;
-        const overId = over?.id;
-        if (over && active.data.current?.accepts?.includes(active.data.current?.type)) {
-            console.log("valid drop "); //LOG: valid drop, handleDragEnd event was successful
-            //NOTE:  will take care of the logic of moving the task from one column to another
-            setKanboardList((prev) => {
-                const sourceColumn = prev.find((column) => column.id === activeId);
-                const targetColumn = prev.find((column) => column.id === overId);
-                if (!sourceColumn || !targetColumn || sourceColumn.id === targetColumn.id) return prev;
+    if (overId && over.data.current?.accepts?.includes(active.data.current?.type)) {
+        // Fixed: accepts/type match, no typo
+        console.log("Valid drop! Moving task...");
 
-                const taskToMove = sourceColumn.taks.find((t) => t.id === activeId);
-                const sourceTasks = sourceColumn.tasks.filter((t) => t.id !== activeId);
-                const newTargetTasks = [...targetColumn.tasks, taskToMove]; //append to ennd
+        // Immutable reordering: Find source/target, move task
+        setKanboardList((prev) => {
+            const sourceColumn = prev.find((col) => col.tasks.some((t) => t.id === activeId));
+            const targetColumn = prev.find((col) => col.id === overId);
+            if (!sourceColumn || !targetColumn || sourceColumn.id === targetColumn.id) {
+                return prev; // Same column: No-op (add sortable later)
+            }
 
-                return prev.map((col) => {
-                    if (col.id === sourceColumn.id) return { ...col, tasks: sourceTasks };
-                    if (col.id === targetColumn.id) return { ...col, tasks: newTargetTasks };
-                    return col;
-                });
+            const taskToMove = sourceColumn.tasks.find((t) => t.id === activeId);
+            const sourceTasks = sourceColumn.tasks.filter((t) => t.id !== activeId);
+            const newTargetTasks = [...targetColumn.tasks, taskToMove]; // Append to end
+
+            return prev.map((col) => {
+                if (col.id === sourceColumn.id) return { ...col, tasks: sourceTasks };
+                if (col.id === targetColumn.id) return { ...col, tasks: newTargetTasks };
+                return col;
             });
-        } else {
-            console.log("invalid drop or no over."); //LOG
-        }
-        setActiveTaskId(null);
-    };
+        });
+    } else {
+        console.log("Invalid drop or no over.");
+    }
+    setActiveTaskId(null);
+};
+
+export default function Board() {
+    const [kanboardList, setKanboardList] = useState(kanbanBoardList); // Use 'kanboardList' consistently
+    const [activeTaskId, setActiveTaskId] = useState(null);
 
     return (
         <>
-            /*NOTE*/
             <DndContext
-                collisionDetection={closestCorners}
-                onDragStart={({ active }) => setActiveTaskId(active.id)} //EventX
-                // EventHandlerX
-                onDragEnd={(event) => handleDragEnd(event)} // EventY
+                collisionDetection={closestCorners} // Add: Smooth hover detection, reduces edge glitches
+                onDragStart={({ active }) => setActiveTaskId(active.id)} // Add: Set once on start, no loops
+                onDragEnd={(event) => handleDragEnd(event, setKanboardList, setActiveTaskId, kanboardList)} // Fix: Correct sig, pass all deps
             >
-                {/* <PresetTest />  to set the custom presets ( like configuring the highlevelt events and event handlers */}
                 <Container sx={{ background: "transparent" }}>
                     <Stack direction="row" spacing={2}>
-                        {kanboardList.map((column) => {
-                            //INFO: using dynamic data ( not static )
-                            return (
+                        {kanboardList.map(
+                            (
+                                column // Use state, not static
+                            ) => (
                                 <Column
-                                    column={column} // INFO: passing whole column object
+                                    column={column} // Pass full obj
                                     activeTaskId={activeTaskId}
                                     key={column.id}
                                 />
-                            );
-                        })}
+                            )
+                        )}
                     </Stack>
                 </Container>
-                <DragOverlay>{activeTaskId ? <DragOverlayCard value={activeTaskId} /> : null}</DragOverlay>
+                <DragOverlay>{activeTaskId ? <DragOverlayCard value={activeTaskId} boardList={kanboardList} /> : null}</DragOverlay>
             </DndContext>
         </>
     );
