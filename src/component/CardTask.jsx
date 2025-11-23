@@ -1,6 +1,6 @@
-import { useDraggable } from "@dnd-kit/core";
+import { useSortable } from "@dnd-kit/sortable"; //REPLACE
 import { CSS } from "@dnd-kit/utilities";
-import { useEffect } from "react";
+import { useEffect } from "react"; //REMOVE
 import { Card, CardContent, Stack, Typography, Box, IconButton, Avatar, Tooltip } from "@mui/material";
 import {
     kanbanBoardList, // this will come from the firestore database later
@@ -36,11 +36,13 @@ export const stack2Props = {
 export const avatarSx = { bgcolor: "transparent", height: 24, width: 24 };
 
 export default function CardTask({ task, index, activeTaskId }) {
-    const { attributes, listeners, setNodeRef, transform, active } = useDraggable({
+    const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
+        // ADDED : transition
+        //REPLACE : useDraggable=> useSortable
         id: task.id,
         data: {
             type: "taskType1",
-            index, // ADDED: for sortable
+            sortable: { index }, // ADDED: for sortable reoder calculations
             // REMOVED supports: "columnType1",
         }, // acceptable types are 'type1' , 'type2' , INDEX is included to assist in making the sortable list ( within each column)
         disabled: false, // can be used to diable the drag functionality of the drag component ( conditionally) so that e can drag it ( it fixes itself to the column it is originally in )
@@ -48,6 +50,7 @@ export default function CardTask({ task, index, activeTaskId }) {
 
     const style = {
         transform: CSS.Translate.toString(transform), // with the start of the drag of draggable item(component) transform gets poluted with the transform = { x: <number> , y: <nummber> , scaleX: <number> , scaleY: <number> }
+        transition, // ADDED : enables animatd reordering ( slides into places )
         //transform = { x: ∂x(between the pointof start and where the component is dragged to ), y: ∂y( same as ∂x)  , scaleX: <difference in scale of dragged-component to that of droppable-component useful to scale the dragged-component to fit the dimension of droppable areȧ>  , scaleY: <number> }
     };
 

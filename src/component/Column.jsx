@@ -1,7 +1,7 @@
 import { useDroppable } from "@dnd-kit/core";
-
-import { Paper, Stack, AppBar, Chip, Card, CardActionArea, CardContent, Typography } from "@mui/material";
-import { kanbanBoardList } from "./KanbanInitialData.js";
+import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"; //ADDED
+import { Paper, Stack, AppBar, Chip, Card, CardActionArea, CardContent, Typography, Box } from "@mui/material"; // ADDED Box to add place holder
+import { kanbanBoardList } from "./KanbanInitialData.js"; //REMOVED
 import AddIcon from "@mui/icons-material/Add";
 import CardTask from "./CardTask.jsx";
 
@@ -27,6 +27,8 @@ export default function Column({ column, activeTaskId }) {
         id: column.id,
         data: { accepts: ["taskType1"], type: "columnType1" },
     });
+    /*ADDED*/
+    const taskIds = column.tasks.map((task) => task.id); //  for SortableContext
 
     return (
         <Paper ref={setNodeRef} sx={paperSx}>
@@ -35,15 +37,23 @@ export default function Column({ column, activeTaskId }) {
                     <Typography sx={{ fontWeight: "bold", fontSize: "1rem" }}>{column.title}</Typography>
                     <Chip size="small" sx={{ fontSize: "0.8rem" }} label={`${column.tasks.length} tasks`} />
                 </AppBar>
-                {column.tasks.map(
-                    // REPLACE
-                    (
-                        task,
-                        index //ADDED: index
-                    ) => (
-                        <CardTask key={task.id} index={index} task={task} activeTaskId={activeTaskId} /> //TODO: for sortable functionality index is required  />
-                    )
+                <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
+                    // ADDED
+                    {column.tasks.map(
+                        // REPLACE
+                        (
+                            task,
+                            index //ADDED: index
+                        ) => (
+                            <CardTask key={task.id} index={index} task={task} activeTaskId={activeTaskId} /> //ADDED: for sortable functionality index is required  />
+                        )
+                    )}
+                    // ADDED
+                </SortableContext>
+                {column.tasks.length === 0 && ( //ADDED ; invisible placeholder for empty sorts/drops )}
+                    <Box sx={{ height: "60px", opacity: 0.2 }} />
                 )}
+
                 <Card elevation={0} sx={{ bgcolor: "transparent" }}>
                     <CardActionArea>
                         <CardContent>

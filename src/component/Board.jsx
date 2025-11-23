@@ -1,5 +1,6 @@
 import { DndContext, DragOverlay } from "@dnd-kit/core";
 import { closestCorners } from "@dnd-kit/core"; // Add for smooth collision
+import { arrayMove } from "@dnd-kit/sortable"; // ADDED
 import { cardSx, cardContentSx, stack1Sx, stack2Props, avatarSx } from "./CardTask.jsx";
 import { useState } from "react";
 import { Container, Stack, Card, CardContent, Typography, Box, Avatar, IconButton, Tooltip, Chip } from "@mui/material";
@@ -47,27 +48,50 @@ const handleDragEnd = (event, setKanboardList, setActiveTaskId, kanboardList) =>
     const activeId = active.id;
     const overId = over?.id;
 
-    if (overId && over.data.current?.accepts?.includes(active.data.current?.type)) {
+    if (!overId) {
+        // ADDED
+        setActiveTaskId(null);
+        return;
+    }
+
+    const activeType = active.data.curent?.type;
+    const overType = over.data.current?.type;
+    const overAccepts = over.data.current?.accepts;
+
+    if (overAccepts?.includes(activeType) || overType === "taskType1") {
+        // REPLACE
         // Fixed: accepts/type match, no typo
         console.log("Valid drop! Moving task...");
 
         // Immutable reordering: Find source/target, move task
         setKanboardList((prev) => {
             const sourceColumn = prev.find((col) => col.tasks.some((t) => t.id === activeId));
-            const targetColumn = prev.find((col) => col.id === overId);
-            if (!sourceColumn || !targetColumn || sourceColumn.id === targetColumn.id) {
+            const targetColumn = prev.find((col) => col.id === overId || col.id === sourceColumn.id); //ADDED same or target
+
+            if (!sourceColumn || !targetColumn) {
                 return prev; // Same column: No-op (add sortable later)
             }
+            const activeIndex = active.data.current?.sortable?.index; // REPLACE
+            const overIndex = over.data.current?.sortable?.index; // REPLACE
 
-            const taskToMove = sourceColumn.tasks.find((t) => t.id === activeId);
-            const sourceTasks = sourceColumn.tasks.filter((t) => t.id !== activeId);
-            const newTargetTasks = [...targetColumn.tasks, taskToMove]; // Append to end
+            /*ADDED*/ if (sourceColumn.id === targetColumn.id) {
+                const newTasks = arrayMove(
+                    sourceColumn.tasks,
+                    activeIndex,
+                    overIndex ?? sourceColumn.tasks.length // append if no over
+                );
+                return prev.map((col) => (col.id === sourceColumn.id ? { ...col, tasks: newTasks } : col));
+            } else {
+                const taskToMove = sourceColumn.tasks.find((t) => t.id === activeId);
+                const sourceTasks = sourceColumn.tasks.filter((t) => t.id !== activeId);
+                const newTargetTasks = [...targetColumn.tasks, taskToMove]; // Append to end
 
-            return prev.map((col) => {
-                if (col.id === sourceColumn.id) return { ...col, tasks: sourceTasks };
-                if (col.id === targetColumn.id) return { ...col, tasks: newTargetTasks };
-                return col;
-            });
+                return prev.map((col) => {
+                    if (col.id === sourceColumn.id) return { ...col, tasks: sourceTasks };
+                    if (col.id === targetColumn.id) return { ...col, tasks: newTargetTasks };
+                    return col;
+                });
+            }
         });
     } else {
         console.log("Invalid drop or no over.");
