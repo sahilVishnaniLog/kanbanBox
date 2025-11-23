@@ -31,7 +31,12 @@ const DragOverlayCard = ({ value, boardList }) => {
             <CardContent sx={cardContentSx}>
                 <Stack sx={stack1Sx}>
                     <Stack {...stack2Props}>
-                        <Box> {workTypeIconMap(task.workType)}</Box>
+                        <Typography sx={{ fontSize: "0.8rem" }}> {task.title} </Typography>
+                        <Box sx={{ flexGrow: 1 }} />
+                    </Stack>
+                    <Box sx={{ flexGrow: 1 }} />
+                    <Stack {...stack2Props}>
+                        <Box> {workTypeIconMap(task.workType)} </Box>
                         <Typography sx={{ fontSize: "0.8rem" }}> {task.projectId} </Typography>
                         <Box sx={{ flexGrow: 1 }} />
                         <Box> {PriorityIconMap(task.priority)} </Box>
