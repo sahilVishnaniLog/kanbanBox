@@ -101,77 +101,77 @@ const updatePreviewBoard = useCallback((prev, activeId, over) => {
     });
 }, []);
 
-const handleDragEnd = useCallback(
-    (event, setKanboardList, setActiveTaskId, setIsDragging, setPreviewBoard, previewBoard) => {
-        const { active, over } = event;
-        const activeId = active.id;
-        const overId = over?.id;
-
-        if (!overId) {
-            setPreviewBoard(kanboardList); // Reset to original
-            setActiveTaskId(null);
-            setIsDragging(false);
-            return;
-        }
-
-        const activeType = active.data.current?.type;
-        const overType = over.data.current?.type;
-        const overAccepts = over.data.current?.accepts;
-
-        if (overAccepts?.includes(activeType) || overType === "taskType1") {
-            console.log("Valid drop! Committing reorder...");
-            // Commit preview to real state (remove isPreview, use arrayMove/insert logic)
-            setKanboardList((prev) => {
-                const sourceColumn = prev.find((col) => col.tasks.some((t) => t.id === activeId));
-                if (!sourceColumn) return prev;
-
-                let targetColumn = sourceColumn;
-                let newTasks = sourceColumn.tasks;
-                let activeIndex = sourceColumn.tasks.findIndex((t) => t.id === activeId);
-
-                if (overType === "taskType1") {
-                    targetColumn = prev.find((col) => col.id === over.data.current.columnId);
-                    if (targetColumn.id === sourceColumn.id) {
-                        // Intra commit
-                        const overIndex = over.data.current.sortable?.index ?? 0;
-                        newTasks = arrayMove(sourceColumn.tasks, activeIndex, overIndex);
-                    } else {
-                        // Cross commit
-                        const overIndex = (over.data.current.sortable?.index ?? targetColumn.tasks.length - 1) + 1;
-                        const taskToMove = sourceColumn.tasks.find((t) => t.id === activeId);
-                        const sourceTasks = sourceColumn.tasks.filter((t) => t.id !== activeId);
-                        newTasks = [...targetColumn.tasks.slice(0, overIndex), taskToMove, ...targetColumn.tasks.slice(overIndex)];
-                    }
-                } else if (overType === "columnType1") {
-                    targetColumn = prev.find((col) => col.id === over.id);
-                    if (targetColumn.id === sourceColumn.id) return prev;
-                    const taskToMove = sourceColumn.tasks.find((t) => t.id === activeId);
-                    const sourceTasks = sourceColumn.tasks.filter((t) => t.id !== activeId);
-                    newTasks = [...targetColumn.tasks, taskToMove];
-                }
-
-                return prev.map((col) => {
-                    if (col.id === sourceColumn.id) return { ...col, tasks: sourceColumn.id === targetColumn.id ? newTasks : sourceColumn.tasks.filter((t) => t.id !== activeId) };
-                    if (col.id === targetColumn.id) return { ...col, tasks: newTasks };
-                    return col;
-                });
-            });
-        } else {
-            console.log("Invalid drop.");
-            setPreviewBoard(kanboardList); // Reset
-        }
-        setActiveTaskId(null);
-        setIsDragging(false);
-        setPreviewBoard(kanboardList); // Reset preview
-    },
-    [kanboardList]
-);
-
 export default function Board() {
     const [kanboardList, setKanboardList] = useState(kanbanBoardList);
     const [previewBoard, setPreviewBoard] = useState(kanboardList); // For live preview
     const [activeTaskId, setActiveTaskId] = useState(null);
     const [isDragging, setIsDragging] = useState(false);
+
+    const handleDragEnd = useCallback(
+        (event) => {
+            const { active, over } = event;
+            const activeId = active.id;
+            const overId = over?.id;
+
+            if (!overId) {
+                setPreviewBoard(kanboardList); // Reset to original
+                setActiveTaskId(null);
+                setIsDragging(false);
+                return;
+            }
+
+            const activeType = active.data.current?.type;
+            const overType = over.data.current?.type;
+            const overAccepts = over.data.current?.accepts;
+
+            if (overAccepts?.includes(activeType) || overType === "taskType1") {
+                console.log("Valid drop! Committing reorder...");
+                // Commit preview to real state (remove isPreview, use arrayMove/insert logic)
+                setKanboardList((prev) => {
+                    const sourceColumn = prev.find((col) => col.tasks.some((t) => t.id === activeId));
+                    if (!sourceColumn) return prev;
+
+                    let targetColumn = sourceColumn;
+                    let newTasks = sourceColumn.tasks;
+                    let activeIndex = sourceColumn.tasks.findIndex((t) => t.id === activeId);
+
+                    if (overType === "taskType1") {
+                        targetColumn = prev.find((col) => col.id === over.data.current.columnId);
+                        if (targetColumn.id === sourceColumn.id) {
+                            // Intra commit
+                            const overIndex = over.data.current.sortable?.index ?? 0;
+                            newTasks = arrayMove(sourceColumn.tasks, activeIndex, overIndex);
+                        } else {
+                            // Cross commit
+                            const overIndex = (over.data.current.sortable?.index ?? targetColumn.tasks.length - 1) + 1;
+                            const taskToMove = sourceColumn.tasks.find((t) => t.id === activeId);
+
+                            newTasks = [...targetColumn.tasks.slice(0, overIndex), taskToMove, ...targetColumn.tasks.slice(overIndex)];
+                        }
+                    } else if (overType === "columnType1") {
+                        targetColumn = prev.find((col) => col.id === over.id);
+                        if (targetColumn.id === sourceColumn.id) return prev;
+                        const taskToMove = sourceColumn.tasks.find((t) => t.id === activeId);
+
+                        newTasks = [...targetColumn.tasks, taskToMove];
+                    }
+
+                    return prev.map((col) => {
+                        if (col.id === sourceColumn.id) return { ...col, tasks: sourceColumn.id === targetColumn.id ? newTasks : sourceColumn.tasks.filter((t) => t.id !== activeId) };
+                        if (col.id === targetColumn.id) return { ...col, tasks: newTasks };
+                        return col;
+                    });
+                });
+            } else {
+                console.log("Invalid drop.");
+                // Reset
+            }
+            setActiveTaskId(null);
+            setIsDragging(false);
+            setPreviewBoard(kanboardList); // Reset preview
+        },
+        [kanboardList]
+    );
 
     return (
         <>
@@ -187,7 +187,7 @@ export default function Board() {
                     if (!over || !active.id) return;
                     setPreviewBoard((prev) => updatePreviewBoard(prev, active.id, over));
                 }}
-                onDragEnd={(event) => handleDragEnd(event, setKanboardList, setActiveTaskId, setIsDragging, setPreviewBoard, previewBoard)}
+                onDragEnd={handleDragEnd}
             >
                 <Container sx={{ background: "transparent" }}>
                     <Stack direction="row" spacing={2}>
