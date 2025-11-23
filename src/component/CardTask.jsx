@@ -1,8 +1,9 @@
 import { useSortable } from "@dnd-kit/sortable"; //REPLACE
 import { CSS } from "@dnd-kit/utilities";
 import { useEffect } from "react"; //REMOVE
-import { Card, CardContent, Stack, Typography, Box, IconButton, Avatar, Tooltip } from "@mui/material";
+import { Card, CardContent, Stack, Typography, Box, IconButton, Avatar, Tooltip, CardActionArea } from "@mui/material";
 import {
+    // REMOVE
     kanbanBoardList, // this will come from the firestore database later
 } from "./KanbanInitialData.js";
 import { workTypeIconMap, PriorityIconMap } from "./KanbanIconMap.jsx";
@@ -35,8 +36,15 @@ export const stack2Props = {
 };
 export const avatarSx = { bgcolor: "transparent", height: 24, width: 24 };
 
-export default function CardTask({ task, index, activeTaskId }) {
-    const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
+export default function CardTask({ task, index, activeTaskId, transitionDelay, isOver }) {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging: cardDragging,
+    } = useSortable({
         // ADDED : transition
         //REPLACE : useDraggable=> useSortable
         id: task.id,
@@ -50,8 +58,10 @@ export default function CardTask({ task, index, activeTaskId }) {
 
     const style = {
         transform: CSS.Translate.toString(transform), // with the start of the drag of draggable item(component) transform gets poluted with the transform = { x: <number> , y: <nummber> , scaleX: <number> , scaleY: <number> }
-        transition, // ADDED : enables animatd reordering ( slides into places )
         //transform = { x: ∂x(between the pointof start and where the component is dragged to ), y: ∂y( same as ∂x)  , scaleX: <difference in scale of dragged-component to that of droppable-component useful to scale the dragged-component to fit the dimension of droppable areȧ>  , scaleY: <number> }
+        transition: `${transition} 0.2s cubic-bezier(0.25, 0.46. 0.45.0.94)`, // ADDED : enables animatd reordering ( slides into places )
+        transitionDelay,
+        ...(isOver && { transform: "scale(1.02)", boxShadow: "0 2px 8px rgba(25, 118, 210, 0.3) " }),
     };
 
     return (
@@ -62,34 +72,40 @@ export default function CardTask({ task, index, activeTaskId }) {
             {...listeners} //  this is a basic call syntax
             // to include the draggable elements to recieve keyboard focus events
         >
-            <Card sx={cardSx}>
-                <CardContent sx={cardContentSx}>
-                    <Stack sx={stack1Sx}>
-                        <Stack {...stack2Props}>
-                            <Typography sx={{ fontSize: "0.8rem" }}>{task.title}</Typography>
-                            <IconButton onClick={(e) => e.stopPropagation()} sx={{ background: "transparent", p: 0 }}>
-                                <EditIcon sx={{ fontSize: 10, p: 0 }} />
-                            </IconButton>
+            {/* ADDED fade original during drag */}
+            <Card sx={{ ...cardSx, ...(cardDragging && { opacity: 0.7 }) }}>
+                <CardActionArea
+                    disableRipple={!cardDragging ? false : true} // ripples off during drag
+                    sx={{ height: "100%", width: "100%", p: "0.5rem", m: 0 }}
+                >
+                    <CardContent sx={cardContentSx}>
+                        <Stack sx={stack1Sx}>
+                            <Stack {...stack2Props}>
+                                <Typography sx={{ fontSize: "0.8rem" }}>{task.title}</Typography>
+                                <IconButton onClick={(e) => e.stopPropagation()} sx={{ background: "transparent", p: 0 }}>
+                                    <EditIcon sx={{ fontSize: 10, p: 0 }} />
+                                </IconButton>
+                                <Box sx={{ flexGrow: 1 }} />
+                                <IconButton onClick={(e) => e.stopPropagation()} sx={{ background: "transparent" }}>
+                                    <MoreHorizIcon />
+                                </IconButton>
+                            </Stack>
                             <Box sx={{ flexGrow: 1 }} />
-                            <IconButton onClick={(e) => e.stopPropagation()} sx={{ background: "transparent" }}>
-                                <MoreHorizIcon />
-                            </IconButton>
-                        </Stack>
-                        <Box sx={{ flexGrow: 1 }} />
 
-                        <Stack
-                            {...stack2Props} // there is possibility to make the change to the height : to be 1.2rem
-                        >
-                            <Box> {workTypeIconMap(task.workType)}</Box>
-                            <Typography sx={{ fontSize: "0.8rem" }}> {task.projectId} </Typography>
-                            <Box sx={{ flexGrow: 1 }} />
-                            <Box component="span"> {PriorityIconMap(task.priority)}</Box>
-                            <Tooltip title={task.author?.name || "Author"}>
-                                <Avatar onClick={(e) => e.stopPropagation()} sx={avatarSx} src={task.author.photoUrl} />
-                            </Tooltip>
+                            <Stack
+                                {...stack2Props} // there is possibility to make the change to the height : to be 1.2rem
+                            >
+                                <Box> {workTypeIconMap(task.workType)}</Box>
+                                <Typography sx={{ fontSize: "0.8rem" }}> {task.projectId} </Typography>
+                                <Box sx={{ flexGrow: 1 }} />
+                                <Box component="span"> {PriorityIconMap(task.priority)}</Box>
+                                <Tooltip title={task.author?.name || "Author"}>
+                                    <Avatar onClick={(e) => e.stopPropagation()} sx={avatarSx} src={task.author.photoUrl} />
+                                </Tooltip>
+                            </Stack>
                         </Stack>
-                    </Stack>
-                </CardContent>
+                    </CardContent>
+                </CardActionArea>
             </Card>
         </Box>
     );

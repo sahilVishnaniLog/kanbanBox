@@ -11,6 +11,15 @@ const paperSx = {
     height: "fit-content",
     padding: "1rem",
     minHeight: "300px", //ADDED:
+    transition: "background-color 0.3s ease, box-shadow 0.3s ease", //ADDED : for smooth shade fade
+};
+const dropIndicatorSx = {
+    height: "2px",
+    background: "linear-gradient(90deg, #1976d2, #42a5f5)",
+    borderRadius: "1px",
+    opacity: 0,
+    transition: "opacity 0.2s ease",
+    mx: 1,
 };
 const appBarSx = {
     background: "transparent",
@@ -21,14 +30,24 @@ const appBarSx = {
     position: "static",
 };
 
-export default function Column({ column, activeTaskId }) {
+export default function Column({ column, activeTaskId, isDragging }) {
+    //ADDED : isDragging
     // REMOVED: setActiveTaskId
-    const { setNodeRef } = useDroppable({
+    const { setNodeRef, isOver } = useDroppable({
+        //ADDED destructuring isOver
         id: column.id,
         data: { accepts: ["taskType1"], type: "columnType1" },
     });
     /*ADDED*/
     const taskIds = column.tasks.map((task) => task.id); //  for SortableContext
+    const columnSx = isDragging
+        ? {
+              //REPLACE
+              ...paperSx, //REPLACE
+              backgroundColor: "rgba (0,0,0,0.05)", //REPLACE  : light shade
+              boxShadow: isOver ? "0 0 0 2px #1976d2" : "none", //REPLACE  : glow on hover
+          } //REPLACE
+        : paperSx; //REPLACE
 
     return (
         <Paper ref={setNodeRef} sx={paperSx}>
@@ -38,17 +57,21 @@ export default function Column({ column, activeTaskId }) {
                     <Chip size="small" sx={{ fontSize: "0.8rem" }} label={`${column.tasks.length} tasks`} />
                 </AppBar>
                 <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
-                    // ADDED
+                    {/*  ADDED */}
                     {column.tasks.map(
                         // REPLACE
                         (
                             task,
                             index //ADDED: index
                         ) => (
-                            <CardTask key={task.id} index={index} task={task} activeTaskId={activeTaskId} /> //ADDED: for sortable functionality index is required  />
+                            <CardTask key={task.id} index={index} task={task} activeTaskId={activeTaskId} transitionDelay={`${index * 0.05} s`} isOver={isOver} /> //ADDED: for sortable functionality index is required  />
                         )
                     )}
-                    // ADDED
+                    {/*  ADDED */}
+                    {isOver && ( // Creative ; insertion line on hover
+                        <Box sx={{ ...dropIndicatorSx, opacity: 1 }} />
+                    )}{" "}
+                    {/*  ADDED */}
                 </SortableContext>
                 {column.tasks.length === 0 && ( //ADDED ; invisible placeholder for empty sorts/drops )}
                     <Box sx={{ height: "60px", opacity: 0.2 }} />

@@ -27,7 +27,14 @@ const DragOverlayCard = ({ value, boardList }) => {
     const task = findTask(value, boardList);
     if (!task) return null;
     return (
-        <Card sx={cardSx}>
+        <Card
+            sx={{
+                ...cardSx,
+                boxShadow: "0 4px 20px rgba(0,0,0,0.15)", // ADDED: ghost trail shadow
+                transform: "scale(1.02)", // ADDED : micro lift on overlay
+                transition: "transform 0.1s ease-out",
+            }}
+        >
             <CardContent sx={cardContentSx}>
                 <Stack sx={stack1Sx}>
                     <Stack {...stack2Props}>
@@ -48,7 +55,7 @@ const DragOverlayCard = ({ value, boardList }) => {
     );
 };
 
-const handleDragEnd = (event, setKanboardList, setActiveTaskId, kanboardList) => {
+const handleDragEnd = (event, setKanboardList, setActiveTaskId, kanboardList, setIsDragging) => {
     const { active, over } = event;
     const activeId = active.id;
     const overId = over?.id;
@@ -102,18 +109,23 @@ const handleDragEnd = (event, setKanboardList, setActiveTaskId, kanboardList) =>
         console.log("Invalid drop or no over.");
     }
     setActiveTaskId(null);
+    setIsDragging(false); //ADDED : trigger a quick scale on all cards
 };
 
 export default function Board() {
     const [kanboardList, setKanboardList] = useState(kanbanBoardList); // Use 'kanboardList' consistently
     const [activeTaskId, setActiveTaskId] = useState(null);
+    const [isDragging, setIsDragging] = useState(false); // ADDED : trigger a quick scale on all cards
 
     return (
         <>
             <DndContext
                 collisionDetection={closestCorners} // Add: Smooth hover detection, reduces edge glitches
-                onDragStart={({ active }) => setActiveTaskId(active.id)} // Add: Set once on start, no loops
-                onDragEnd={(event) => handleDragEnd(event, setKanboardList, setActiveTaskId, kanboardList)} // Fix: Correct sig, pass all deps
+                onDragStart={() => {
+                    setIsDragging(true); // REPLACED
+                    setActiveTaskId(active.id);
+                }} // Add: Set once on start, no loops
+                onDragEnd={(event) => handleDragEnd(event, setKanboardList, setActiveTaskId, kanboardList, setIsDragging)} // Fix: Correct sig, pass all deps
             >
                 <Container sx={{ background: "transparent" }}>
                     <Stack direction="row" spacing={2}>
@@ -125,6 +137,7 @@ export default function Board() {
                                     column={column} // Pass full obj
                                     activeTaskId={activeTaskId}
                                     key={column.id}
+                                    isDragging={isDragging} // ADDED : shading of the card
                                 />
                             )
                         )}
