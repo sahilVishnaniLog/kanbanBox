@@ -1,11 +1,8 @@
 import { useSortable } from "@dnd-kit/sortable"; //REPLACE
 import { CSS } from "@dnd-kit/utilities";
-import { useEffect } from "react"; //REMOVE
+
 import { Card, CardContent, Stack, Typography, Box, IconButton, Avatar, Tooltip, CardActionArea } from "@mui/material";
-import {
-    // REMOVE
-    kanbanBoardList, // this will come from the firestore database later
-} from "./KanbanInitialData.js";
+
 import { workTypeIconMap, PriorityIconMap } from "./KanbanIconMap.jsx";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import EditIcon from "@mui/icons-material/Edit";
@@ -35,8 +32,9 @@ export const stack2Props = {
     sx: { padding: 0, height: "1rem" },
 };
 export const avatarSx = { bgcolor: "transparent", height: 24, width: 24 };
+const iconSx = { opacity: 0, transition: "opacity 0.15s ease-in-out", color: "text.secondary" };
 
-export default function CardTask({ task, index, activeTaskId, transitionDelay, isOver }) {
+export default function CardTask({ task, index, activeTaskId, transitionDelay, isOver, columnId }) {
     const {
         attributes,
         listeners,
@@ -51,7 +49,7 @@ export default function CardTask({ task, index, activeTaskId, transitionDelay, i
         data: {
             type: "taskType1",
             sortable: { index }, // ADDED: for sortable reoder calculations
-            // REMOVED supports: "columnType1",
+            columnId, // REMOVED supports: "columnType1",
         }, // acceptable types are 'type1' , 'type2' , INDEX is included to assist in making the sortable list ( within each column)
         disabled: false, // can be used to diable the drag functionality of the drag component ( conditionally) so that e can drag it ( it fixes itself to the column it is originally in )
     });
@@ -61,7 +59,7 @@ export default function CardTask({ task, index, activeTaskId, transitionDelay, i
         //transform = { x: ∂x(between the pointof start and where the component is dragged to ), y: ∂y( same as ∂x)  , scaleX: <difference in scale of dragged-component to that of droppable-component useful to scale the dragged-component to fit the dimension of droppable areȧ>  , scaleY: <number> }
         transition: `${transition} 0.2s cubic-bezier(0.25, 0.46. 0.45.0.94)`, // ADDED : enables animatd reordering ( slides into places )
         transitionDelay,
-        ...(isOver && { transform: "scale(1.02)", boxShadow: "0 2px 8px rgba(25, 118, 210, 0.3) " }),
+        ...(isOver && { transform: "scale(1.02)", boxShadow: "0 2px 8px rgba(25, 118, 210, 0.3)" }),
     };
 
     return (
@@ -71,22 +69,33 @@ export default function CardTask({ task, index, activeTaskId, transitionDelay, i
             {...attributes} // these can be put in further nested components  inside which acts like a drag handle we are adding here cause we need  the whole card to  be dragable
             {...listeners} //  this is a basic call syntax
             // to include the draggable elements to recieve keyboard focus events
+            tabIndex={0}
         >
             {/* ADDED fade original during drag */}
-            <Card sx={{ ...cardSx, ...(cardDragging && { opacity: 0.7 }) }}>
+            <Card
+                sx={{
+                    ...cardSx,
+                    ...(cardDragging && { opacity: 0.7 }),
+                    transition: "box-shadow 0.15s ease-in-out",
+                    "&:hover, &:focus-visible": {
+                        boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                        ".edit-icon, .more-icon": { opacity: 1 },
+                    },
+                }}
+            >
                 <CardActionArea
-                    disableRipple={!cardDragging ? false : true} // ripples off during drag
+                    disableRipple={cardDragging} // ripples off during drag
                     sx={{ height: "100%", width: "100%", p: "0.5rem", m: 0 }}
                 >
                     <CardContent sx={cardContentSx}>
                         <Stack sx={stack1Sx}>
                             <Stack {...stack2Props}>
                                 <Typography sx={{ fontSize: "0.8rem" }}>{task.title}</Typography>
-                                <IconButton onClick={(e) => e.stopPropagation()} sx={{ background: "transparent", p: 0 }}>
+                                <IconButton onClick={(e) => e.stopPropagation()} className="edit-icon" sx={{ ...iconSx, background: "transparent", p: 0 }}>
                                     <EditIcon sx={{ fontSize: 10, p: 0 }} />
                                 </IconButton>
                                 <Box sx={{ flexGrow: 1 }} />
-                                <IconButton onClick={(e) => e.stopPropagation()} sx={{ background: "transparent" }}>
+                                <IconButton onClick={(e) => e.stopPropagation()} className="more-icon" sx={{ ...iconSx, background: "transparent" }}>
                                     <MoreHorizIcon />
                                 </IconButton>
                             </Stack>

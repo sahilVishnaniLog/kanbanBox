@@ -29,7 +29,16 @@ const appBarSx = {
     justifyContent: "space-between",
     position: "static",
 };
-
+const skeletonSx = {
+    height: "7rem",
+    bgcolor: "transparent",
+    border: "2px dashed rgba(25, 18., 210 , 0.5 )", //dashed blue outline
+    borderRadius: 1,
+    opacity: 0.6,
+    transform: "scale(1.01)",
+    animation: "skeletonPulse 0.6s infinite ease-in-out", //breathing pulse animation
+    transition: "opacity 0.2s ease",
+};
 export default function Column({ column, activeTaskId, isDragging }) {
     //ADDED : isDragging
     // REMOVED: setActiveTaskId
@@ -49,6 +58,13 @@ export default function Column({ column, activeTaskId, isDragging }) {
           } //REPLACE
         : paperSx; //REPLACE
 
+    const showSkeleton = isDragging && insertionData.columnId === column.id;
+    const insertIndex = showSkeleton ? insertionData.index : -1;
+    const visualTasks = [...column.tasks];
+    if (showSkeleton && insertindex >= o && insertIndex <= visualTasks.length) {
+        visualTasks.splice(insertIndex, 0, { id: "skeleton", isSkeleton: true });
+    }
+
     return (
         <Paper ref={setNodeRef} sx={paperSx}>
             <Stack spacing="1rem">
@@ -57,21 +73,20 @@ export default function Column({ column, activeTaskId, isDragging }) {
                     <Chip size="small" sx={{ fontSize: "0.8rem" }} label={`${column.tasks.length} tasks`} />
                 </AppBar>
                 <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
-                    {/*  ADDED */}
-                    {column.tasks.map(
-                        // REPLACE
-                        (
-                            task,
-                            index //ADDED: index
-                        ) => (
-                            <CardTask key={task.id} index={index} task={task} activeTaskId={activeTaskId} transitionDelay={`${index * 0.05} s`} isOver={isOver} /> //ADDED: for sortable functionality index is required  />
+                    {visualTasks.map((item, visualIndex) =>
+                        item.isSkeleton ? (
+                            <Card key="skeleton" sx={skeletonSx}>
+                                <CardContent sx={{ p: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                    <Typography variant="body1" color="text.secondary">
+                                        Drop here.
+                                    </Typography>
+                                </CardContent>
+                            </Card>
+                        ) : (
+                            <CardTask key={task.id} index={visualIndex} task={task} activeTaskId={activeTaskId} transitionDelay={`${index * 0.05} s`} isOver={isOver} columnId={column.id} /> //ADDED: for sortable functionality index is required  />
                         )
                     )}
-                    {/*  ADDED */}
-                    {isOver && ( // Creative ; insertion line on hover
-                        <Box sx={{ ...dropIndicatorSx, opacity: 1 }} />
-                    )}{" "}
-                    {/*  ADDED */}
+                    {isOver && !showSkeleton && <Box sx={{ ...dropIndicatorSx, opacity: 1 }} />} {/*  ADDED */}
                 </SortableContext>
                 {column.tasks.length === 0 && ( //ADDED ; invisible placeholder for empty sorts/drops )}
                     <Box sx={{ height: "60px", opacity: 0.2 }} />

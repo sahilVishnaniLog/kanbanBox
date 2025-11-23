@@ -10,3 +10,15 @@
 .card-pulse {
     animation: pulse 0.3s ease-out;
 }
+
+@keyframes skeletonPulse {
+    0%,
+    100% {
+        opcaity: 0.6;
+        transform: scale(1.01);
+    }
+    50% {
+        opacity: 0.8;
+        trandform: scale(1.02);
+    }
+}
