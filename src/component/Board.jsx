@@ -63,60 +63,79 @@ const DragOverlayCard = ({ value, boardList }) => {
     );
 };
 
-// Fixed: Unified preview for intra/cross (arrayMove for intra, insert for cross)
-const updatePreviewBoard = useCallback((prev, activeId, over) => {
-    const active = prev.flatMap((col) => col.tasks).find((t) => t.id === activeId);
-    if (!active) return prev;
-
-    const sourceColumn = prev.find((col) => col.tasks.some((t) => t.id === activeId));
-    const overType = over.data.current?.type;
-    let targetColumn = sourceColumn;
-    let newTasks = sourceColumn.tasks;
-    let activeIndex = sourceColumn.tasks.findIndex((t) => t.id === activeId);
-
-    if (overType === "taskType1") {
-        targetColumn = prev.find((col) => col.id === over.data.current.columnId);
-        if (targetColumn.id === sourceColumn.id) {
-            // Intra: Reorder preview
-            const overIndex = over.data.current.sortable?.index ?? 0;
-            newTasks = arrayMove(sourceColumn.tasks, activeIndex, overIndex);
-        } else {
-            // Cross: Insert preview
-            const overIndex = (over.data.current.sortable?.index ?? targetColumn.tasks.length - 1) + 1;
-            const sourceTasks = sourceColumn.tasks.filter((t) => t.id !== activeId);
-            newTasks = [...targetColumn.tasks.slice(0, overIndex), { ...active, isPreview: true }, ...targetColumn.tasks.slice(overIndex)];
-        }
-    } else if (overType === "columnType1") {
-        targetColumn = prev.find((col) => col.id === over.id);
-        if (targetColumn.id === sourceColumn.id) return prev; // No change for column hover in same
-        const overIndex = targetColumn.tasks.length;
-        const sourceTasks = sourceColumn.tasks.filter((t) => t.id !== activeId);
-        newTasks = [...targetColumn.tasks, { ...active, isPreview: true }];
-    }
-
-    return prev.map((col) => {
-        if (col.id === sourceColumn.id) return { ...col, tasks: sourceColumn.id === targetColumn.id ? newTasks : sourceColumn.tasks.filter((t) => t.id !== activeId) };
-        if (col.id === targetColumn.id) return { ...col, tasks: newTasks };
-        return col;
-    });
-}, []);
-
 export default function Board() {
     const [kanboardList, setKanboardList] = useState(kanbanBoardList);
     const [previewBoard, setPreviewBoard] = useState(kanboardList); // For live preview
     const [activeTaskId, setActiveTaskId] = useState(null);
     const [isDragging, setIsDragging] = useState(false);
 
+    // FIX 1: Refactored logic to base the preview on the latest committed state (kanboardList),
+    // ensuring a clean state in every update.
+    const updatePreviewBoard = useCallback(
+        (activeId, over) => {
+            // Start from a deep copy of the latest committed state.
+            let nextBoard = JSON.parse(JSON.stringify(kanboardList));
+
+            const activeItem = findTask(activeId, nextBoard);
+            if (!activeItem) return kanboardList;
+
+            const sourceColumn = nextBoard.find((col) => col.tasks.some((t) => t.id === activeId));
+            if (!sourceColumn) return kanboardList;
+
+            const sourceColumnIndex = nextBoard.findIndex((col) => col.id === sourceColumn.id);
+            const activeIndex = sourceColumn.tasks.findIndex((t) => t.id === activeId);
+
+            // Remove the active item from its committed source location in the preview copy
+            // This is crucial for correctly simulating the move across columns.
+            nextBoard[sourceColumnIndex].tasks.splice(activeIndex, 1);
+
+            const overType = over.data.current?.type;
+            let targetColumnIndex = -1;
+            let overIndex = -1;
+
+            if (overType === "taskType1") {
+                const targetColumnId = over.data.current.columnId;
+                targetColumnIndex = nextBoard.findIndex((col) => col.id === targetColumnId);
+
+                // over.data.current.sortable?.index gives the position to insert at
+                overIndex = over.data.current.sortable?.index ?? 0;
+            } else if (overType === "columnType1") {
+                const targetColumnId = over.id;
+                targetColumnIndex = nextBoard.findIndex((col) => col.id === targetColumnId);
+                // Dropping on the column itself means inserting at the end
+                overIndex = nextBoard[targetColumnIndex].tasks.length;
+            }
+
+            if (targetColumnIndex >= 0) {
+                // Mark as preview
+                const taskToInsert = { ...activeItem, isPreview: true };
+                const targetTasks = nextBoard[targetColumnIndex].tasks;
+
+                // Insert the preview task
+                targetTasks.splice(overIndex, 0, taskToInsert);
+
+                return nextBoard;
+            }
+
+            // If drag is happening over an invalid drop zone, return the board with the item still removed
+            return nextBoard;
+        },
+        [kanboardList]
+    ); // FIX 2: Dependency array ensures the latest kanboardList is available
+
+    // FIX 3: Refactored handleDragEnd to use state setters directly from closure
+    // and simplify cross-column index calculation.
     const handleDragEnd = useCallback(
         (event) => {
             const { active, over } = event;
             const activeId = active.id;
             const overId = over?.id;
 
+            // If drop is invalid (e.g., dropped outside DndContext), reset to original
             if (!overId) {
-                setPreviewBoard(kanboardList); // Reset to original
                 setActiveTaskId(null);
                 setIsDragging(false);
+                setPreviewBoard(kanboardList);
                 return;
             }
 
@@ -126,7 +145,7 @@ export default function Board() {
 
             if (overAccepts?.includes(activeType) || overType === "taskType1") {
                 console.log("Valid drop! Committing reorder...");
-                // Commit preview to real state (remove isPreview, use arrayMove/insert logic)
+
                 setKanboardList((prev) => {
                     const sourceColumn = prev.find((col) => col.tasks.some((t) => t.id === activeId));
                     if (!sourceColumn) return prev;
@@ -137,40 +156,48 @@ export default function Board() {
 
                     if (overType === "taskType1") {
                         targetColumn = prev.find((col) => col.id === over.data.current.columnId);
+
                         if (targetColumn.id === sourceColumn.id) {
-                            // Intra commit
+                            // Intra commit (reorder within same column)
                             const overIndex = over.data.current.sortable?.index ?? 0;
                             newTasks = arrayMove(sourceColumn.tasks, activeIndex, overIndex);
                         } else {
-                            // Cross commit
-                            const overIndex = (over.data.current.sortable?.index ?? targetColumn.tasks.length - 1) + 1;
+                            // Cross commit (move to different column)
+                            const overIndex = over.data.current.sortable?.index ?? targetColumn.tasks.length; // Simplified index calculation
                             const taskToMove = sourceColumn.tasks.find((t) => t.id === activeId);
 
                             newTasks = [...targetColumn.tasks.slice(0, overIndex), taskToMove, ...targetColumn.tasks.slice(overIndex)];
                         }
                     } else if (overType === "columnType1") {
+                        // Dropped directly on a column (insert at end)
                         targetColumn = prev.find((col) => col.id === over.id);
-                        if (targetColumn.id === sourceColumn.id) return prev;
-                        const taskToMove = sourceColumn.tasks.find((t) => t.id === activeId);
+                        if (targetColumn.id === sourceColumn.id) return prev; // No change if dropped on same column background
 
+                        const taskToMove = sourceColumn.tasks.find((t) => t.id === activeId);
                         newTasks = [...targetColumn.tasks, taskToMove];
                     }
 
+                    // Map to update state
                     return prev.map((col) => {
-                        if (col.id === sourceColumn.id) return { ...col, tasks: sourceColumn.id === targetColumn.id ? newTasks : sourceColumn.tasks.filter((t) => t.id !== activeId) };
+                        if (col.id === sourceColumn.id) {
+                            // If cross-column move, filter out the task.
+                            return { ...col, tasks: sourceColumn.id === targetColumn.id ? newTasks : sourceColumn.tasks.filter((t) => t.id !== activeId) };
+                        }
+                        // If target column, apply newTasks.
                         if (col.id === targetColumn.id) return { ...col, tasks: newTasks };
                         return col;
                     });
                 });
             } else {
                 console.log("Invalid drop.");
-                // Reset
             }
+
+            // Reset drag state for both valid/invalid drops
             setActiveTaskId(null);
             setIsDragging(false);
-            setPreviewBoard(kanboardList); // Reset preview
+            setPreviewBoard(kanboardList); // Reset preview to latest committed state.
         },
-        [kanboardList]
+        [kanboardList] // Dependency array ensures latest state is available in closure
     );
 
     return (
@@ -183,11 +210,11 @@ export default function Board() {
                     setPreviewBoard(kanboardList); // Init preview as original
                 }}
                 onDragOver={({ active, over }) => {
-                    // Fixed: Unified intra/cross preview
                     if (!over || !active.id) return;
-                    setPreviewBoard((prev) => updatePreviewBoard(prev, active.id, over));
+                    // FIX 4: Call the refactored function directly, passing only necessary arguments.
+                    setPreviewBoard(updatePreviewBoard(active.id, over));
                 }}
-                onDragEnd={handleDragEnd}
+                onDragEnd={handleDragEnd} // FIX 5: Pass the function directly
             >
                 <Container sx={{ background: "transparent" }}>
                     <Stack direction="row" spacing={2}>

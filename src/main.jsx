@@ -10,8 +10,8 @@ import "./index.css";
 createRoot(document.getElementById("root")).render(
     <StrictMode>
         <App />
-        {/* <Auth />
-    <SignIn />
-    <SignOut /> */}
+        <Auth />
+        <SignIn />
+        <SignOut />
     </StrictMode>
 );
